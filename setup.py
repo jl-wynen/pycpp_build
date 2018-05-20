@@ -111,10 +111,10 @@ class CatchTestCommand(TestCommand):
         print("\nPython tests complete, now running C++ tests...\n")
 
 setup(
-    name='python_cpp_example',
+    name='pycpp_build',
     version='0.1',
-    author='Benjamin Jack',
-    author_email='benjamin.r.jack@gmail.com',
+    author='Jan-Lukas Wynen',
+    author_email='j-l.wynen@hotmail.de',
     description='A hybrid Python/C++ test project',
     long_description='',
     # tell setuptools to look for any packages under 'src'
@@ -124,9 +124,10 @@ setup(
     package_dir={'':'src'},
     # add an extension module named 'python_cpp_example' to the package
     # 'python_cpp_example'
-    ext_modules=[CMakeExtension('python_cpp_example/python_cpp_example')],
+    ext_modules=[CMakeExtension('pycpp_build/pycpp_build')],
     # add custom build_ext command
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
+    # python_requires=">=3.4"
 )
 

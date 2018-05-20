@@ -16,7 +16,7 @@ endfunction ()
 
 project(python_cpp_example)
 
-set(SOURCE_DIR "src/python_cpp_example")
+set(SOURCE_DIR "src/pycpp_build")
 include_directories(${SOURCE_DIR})
 set(SOURCES "${SOURCE_DIR}/math.cpp")
 
