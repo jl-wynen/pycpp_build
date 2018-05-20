@@ -1,0 +1,6 @@
+build
+lib
+*.egg-info
+__pycache__
+*.so
+tests/bin
