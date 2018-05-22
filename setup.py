@@ -19,7 +19,7 @@ BUILD_DIR = PROJECT_ROOT/"build"
 CONFIG_FILE = BUILD_DIR/"configure.out.pkl"
 
 class CMakeExtension(Extension):
-    def __init__(self, name, sourcedir=''):
+    def __init__(self, name, sourcedir=""):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
 
@@ -46,7 +46,7 @@ def parse_file(fname):
 
 
 class ConfigureCommand(Command):
-    description = "Configure C++ extension"
+    description = "configure build of C++ extension"
     user_options = [
         ("compiler=", None, "C++ compiler to use"),
         ("catch=", None, "path to catch"),
@@ -113,7 +113,7 @@ class BuildExtension(build_ext):
 
         try:
             # call cmake
-            subprocess.check_call(['cmake', extension.sourcedir] + cmake_args,
+            subprocess.check_call(["cmake", extension.sourcedir] + cmake_args,
                                   cwd=ext_build_dir)
         except subprocess.CalledProcessError as err:
             print(f"Calling cmake failed with arguments {err.cmd}")
@@ -135,33 +135,37 @@ class BuildExtension(build_ext):
             self._run_cmake(extension, ext_build_dir, cmake_args)
 
         print("compiling extension")
-        subprocess.check_call(['cmake', '--build', '.'],
-                              cwd=ext_build_dir)
+        try:
+            subprocess.check_call(["cmake", "--build", ".", "--", "-j", str(self.parallel)],
+                                  cwd=ext_build_dir)
+        except subprocess.CalledProcessError as err:
+            print(f"Calling cmake to build failed, arguments {err.cmd}")
+            sys.exit(1)
 
         # env = os.environ.copy()
-        # env['CXXFLAGS'] = '{} -DVERSION_INFO=\\"{}\\"'.format(
-        #     env.get('CXXFLAGS', ''),
+        # env["CXXFLAGS"] = "{} -DVERSION_INFO=\\"{}\\"".format(
+        #     env.get("CXXFLAGS", ""),
         #     self.distribution.get_version())
         # if not os.path.exists(self.build_temp):
         #     os.makedirs(self.build_temp)
-        # subprocess.check_call(['cmake', ext.sourcedir] + cmake_args,
+        # subprocess.check_call(["cmake", ext.sourcedir] + cmake_args,
         #                       cwd=self.build_temp, env=env)
 
         # # Copy *_test file to tests directory
-        # test_bin = os.path.join(self.build_temp, 'python_cpp_example_test')
+        # test_bin = os.path.join(self.build_temp, "python_cpp_example_test")
         # self.copy_test_file(test_bin)
         # print()  # Add an empty line for cleaner output
 
     def copy_test_file(self, src_file):
-        '''
+        """
         Copy ``src_file`` to `tests/bin` directory, ensuring parent directory
         exists. Messages like `creating directory /path/to/package` and
         `copying directory /src/path/to/package -> path/to/package` are
         displayed on standard output. Adapted from scikit-build.
-        '''
+        """
         # Create directory if needed
         dest_dir = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), 'tests', 'bin')
+            os.path.abspath(__file__)), "tests", "bin")
         if dest_dir != "" and not os.path.exists(dest_dir):
             print("creating directory {}".format(dest_dir))
             os.makedirs(dest_dir)
@@ -184,29 +188,29 @@ class BuildExtension(build_ext):
 
 #     def run(self):
 #         # Run catch tests
-#         subprocess.call(['./*_test'],
-#                         cwd=os.path.join('build',
-#                                          self.distutils_dir_name('temp')),
+#         subprocess.call(["./*_test"],
+#                         cwd=os.path.join("build",
+#                                          self.distutils_dir_name("temp")),
 #                         shell=True)
 #         # Run Python tests
 #         super(CatchTestCommand, self).run()
 #         print("\nPython tests complete, now running C++ tests...\n")
 
 setup(
-    name='pycpp_build',
-    version='0.1',
-    author='Jan-Lukas Wynen',
-    author_email='j-l.wynen@hotmail.de',
-    description='A hybrid Python/C++ test project',
-    long_description='',
-    # tell setuptools to look for any packages under 'src'
-    packages=find_packages('src'),
-    # tell setuptools that all packages will be under the 'src' directory
+    name="pycpp_build",
+    version="0.1",
+    author="Jan-Lukas Wynen",
+    author_email="j-l.wynen@hotmail.de",
+    description="A hybrid Python/C++ test project",
+    long_description="",
+    # tell setuptools to look for any packages under "src"
+    packages=find_packages("src"),
+    # tell setuptools that all packages will be under the "src" directory
     # and nowhere else
-    package_dir={'':'src'},
-    # add an extension module named 'pycpp_build' to the package
-    # 'pycpp_build'
-    ext_modules=[CMakeExtension('pycpp_build/pycpp_build')],
+    package_dir={"":"src"},
+    # add an extension module named "pycpp_build" to the package
+    # "pycpp_build"
+    ext_modules=[CMakeExtension("pycpp_build/pycpp_build")],
     cmdclass={
         "configure": ConfigureCommand,
         "build_ext": BuildExtension,
