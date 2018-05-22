@@ -16,6 +16,7 @@ from setuptools.command.test import test as TestCommand
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 BUILD_DIR = PROJECT_ROOT/"build"
+TEST_DIR = PROJECT_ROOT/"tests"
 CONFIG_FILE = BUILD_DIR/"configure.out.pkl"
 
 class CMakeExtension(Extension):
@@ -81,7 +82,8 @@ class ConfigureCommand(Command):
 def common_cmake_args(config):
     return [f"-D{key}={val}" for key, val in config.items() if val] \
         + [f"-DPYTHON_EXECUTABLE={sys.executable}",
-           f"-DPYTHON_CONFIG={sys.executable}-config"]
+           f"-DPYTHON_CONFIG={sys.executable}-config",
+           f"-DTEST_DIR={TEST_DIR}"]
 
 
 class BuildExtension(build_ext):
@@ -102,14 +104,15 @@ class BuildExtension(build_ext):
         for ext in self.extensions:
             self._build_extension(ext, cmake_args, config_time)
 
-    def _run_cmake(self, extension, ext_build_dir, cmake_args):
+    def _run_cmake(self, extension, libname, ext_build_dir, cmake_args):
         print("running cmake")
 
         # where the extension library has to be placed (during build, not installation)
         extdir = Path(self.get_ext_fullpath(extension.name)).parent.resolve()
         # finalize arguments for cmake
         cmake_args = cmake_args \
-                     + [f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}"]
+                     + [f"-DLIBRARY_NAME={libname}",
+                        f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}"]
 
         try:
             # call cmake
@@ -122,8 +125,10 @@ class BuildExtension(build_ext):
     def _build_extension(self, extension, cmake_args, config_time):
         print(f"building extension {extension.name}")
 
+        # name of the output library
+        libname = extension.name.rsplit("/", 1)[1]
         # directory to build the extension in
-        ext_build_dir = Path(self.build_temp).resolve()/(extension.name.rsplit("/", 1)[1])
+        ext_build_dir = Path(self.build_temp).resolve()/libname
 
         # configure was run after making the directory => start over
         if ext_build_dir.exists() and ext_build_dir.stat().st_mtime < config_time:
@@ -132,69 +137,39 @@ class BuildExtension(build_ext):
         # need to run CMake
         if not ext_build_dir.exists():
             ext_build_dir.mkdir(parents=True)
-            self._run_cmake(extension, ext_build_dir, cmake_args)
+            self._run_cmake(extension, libname, ext_build_dir, cmake_args)
 
         print("compiling extension")
+        build_cmd = ["cmake", "--build", "."]
+        if self.parallel:
+            build_cmd += ["--", "-j", str(self.parallel)]
         try:
-            subprocess.check_call(["cmake", "--build", ".", "--", "-j", str(self.parallel)],
+            subprocess.check_call(build_cmd, cwd=ext_build_dir)
+            subprocess.check_call(["cmake", "--build", ".", "--target", "install"],
                                   cwd=ext_build_dir)
         except subprocess.CalledProcessError as err:
             print(f"Calling cmake to build failed, arguments {err.cmd}")
             sys.exit(1)
-
-        # env = os.environ.copy()
-        # env["CXXFLAGS"] = "{} -DVERSION_INFO=\\"{}\\"".format(
-        #     env.get("CXXFLAGS", ""),
-        #     self.distribution.get_version())
-        # if not os.path.exists(self.build_temp):
-        #     os.makedirs(self.build_temp)
-        # subprocess.check_call(["cmake", ext.sourcedir] + cmake_args,
-        #                       cwd=self.build_temp, env=env)
-
-        # # Copy *_test file to tests directory
-        # test_bin = os.path.join(self.build_temp, "python_cpp_example_test")
-        # self.copy_test_file(test_bin)
-        # print()  # Add an empty line for cleaner output
-
-    def copy_test_file(self, src_file):
-        """
-        Copy ``src_file`` to `tests/bin` directory, ensuring parent directory
-        exists. Messages like `creating directory /path/to/package` and
-        `copying directory /src/path/to/package -> path/to/package` are
-        displayed on standard output. Adapted from scikit-build.
-        """
-        # Create directory if needed
-        dest_dir = os.path.join(os.path.dirname(
-            os.path.abspath(__file__)), "tests", "bin")
-        if dest_dir != "" and not os.path.exists(dest_dir):
-            print("creating directory {}".format(dest_dir))
-            os.makedirs(dest_dir)
-
-        # Copy file
-        dest_file = os.path.join(dest_dir, os.path.basename(src_file))
-        print("copying {} -> {}".format(src_file, dest_file))
-        copyfile(src_file, dest_file)
-        copymode(src_file, dest_file)
         
-# class CatchTestCommand(TestCommand):
-#     "Execute Python and C++ Catch tests"
+class CatchTestCommand(TestCommand):
+    "Execute Python and C++ Catch tests"
 
-#     def distutils_dir_name(self, dname):
-#         """Returns the name of a distutils build directory"""
-#         dir_name = "{dirname}.{platform}-{version[0]}.{version[1]}"
-#         return dir_name.format(dirname=dname,
-#                                platform=sysconfig.get_platform(),
-#                                version=sys.version_info)
+    def distutils_dir_name(self, dname):
+        """Returns the name of a distutils build directory"""
+        dir_name = "{dirname}.{platform}-{version[0]}.{version[1]}"
+        return dir_name.format(dirname=dname,
+                               platform=sysconfig.get_platform(),
+                               version=sys.version_info)
 
-#     def run(self):
-#         # Run catch tests
-#         subprocess.call(["./*_test"],
-#                         cwd=os.path.join("build",
-#                                          self.distutils_dir_name("temp")),
-#                         shell=True)
-#         # Run Python tests
-#         super(CatchTestCommand, self).run()
-#         print("\nPython tests complete, now running C++ tests...\n")
+    def run(self):
+        # Run catch tests
+        subprocess.call(["./*_test"],
+                        cwd=os.path.join("build",
+                                         self.distutils_dir_name("temp")),
+                        shell=True)
+        # Run Python tests
+        super(CatchTestCommand, self).run()
+        print("\nPython tests complete, now running C++ tests...\n")
 
 setup(
     name="pycpp_build",
