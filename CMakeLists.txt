@@ -47,5 +47,12 @@ set(TESTS ${SOURCES}
   "${TEST_DIR}/test_main.cpp"
   "${TEST_DIR}/test_math.cpp")
 
-include_directories(lib/catch/include)
+
+set(CATCH_INCLUDE "" CACHE STRING "Path to catch")
+if (NOT "${CATCH_INCLUDE}" STREQUAL "")
+  message(STATUS "Using catch in ${CATCH_INCLUDE}")
+  include_directories("${CATCH_INCLUDE}")
+else ()
+  message(STATUS "Using catch in default path")
+endif ()
 add_executable("${PROJECT_NAME}_test" ${TESTS})
