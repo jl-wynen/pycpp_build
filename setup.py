@@ -89,15 +89,18 @@ class BuildExtension(build_ext):
         # make sure that cmake is installed
         _ = parse_shell_command("cmake")
 
-        # TODO message if not configured
-        config = pickle.load(open(str(CONFIG_FILE), "rb"))
+        # read configuration file and prepare arguments for cmake
+        try:
+            config = pickle.load(open(str(CONFIG_FILE), "rb"))
+        except FileNotFoundError:
+            print("error: Configuration file not found. Did you forget to run the configure command first?")
+            sys.exit(2)
         config_time = CONFIG_FILE.stat().st_mtime
         cmake_args = common_cmake_args(config)
-        
+
+        # build all extensions
         for ext in self.extensions:
             self._build_extension(ext, cmake_args, config_time)
-
-        sys.exit(0)
 
     def _run_cmake(self, extension, ext_build_dir, cmake_args):
         print("running cmake")
@@ -119,11 +122,14 @@ class BuildExtension(build_ext):
     def _build_extension(self, extension, cmake_args, config_time):
         print(f"building extension {extension.name}")
 
+        # directory to build the extension in
         ext_build_dir = Path(self.build_temp).resolve()/(extension.name.rsplit("/", 1)[1])
 
+        # configure was run after making the directory => start over
         if ext_build_dir.exists() and ext_build_dir.stat().st_mtime < config_time:
             ext_build_dir.rmdir()
 
+        # need to run CMake
         if not ext_build_dir.exists():
             ext_build_dir.mkdir(parents=True)
             self._run_cmake(extension, ext_build_dir, cmake_args)

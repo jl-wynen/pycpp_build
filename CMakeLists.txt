@@ -14,28 +14,28 @@ function (target_linker_flags target flags)
   endif ()
 endfunction ()
 
-project(python_cpp_example)
+project(pycpp_build)
 
 set(SOURCE_DIR "src/pycpp_build")
 include_directories(${SOURCE_DIR})
 set(SOURCES "${SOURCE_DIR}/math.cpp")
 
 # add_subdirectory(lib/pybind11)
-# pybind11_add_module(python_cpp_example ${SOURCES} ${SOURCE_DIR}/bindings.cpp)
+# pybind11_add_module(pycpp_build ${SOURCES} ${SOURCE_DIR}/bindings.cpp)
 
-add_library(python_cpp_example MODULE ${SOURCES} ${SOURCE_DIR}/bindings.cpp)
+add_library(pycpp_build MODULE ${SOURCES} ${SOURCE_DIR}/bindings.cpp)
 
 
 # Pybind11
 find_package(Pybind11 REQUIRED)
-set_target_properties(python_cpp_example PROPERTIES PREFIX "" SUFFIX "${PYBIND11_LIB_SUFFIX}")
+set_target_properties(pycpp_build PROPERTIES PREFIX "" SUFFIX "${PYBIND11_LIB_SUFFIX}")
 include_directories(SYSTEM "${PYBIND11_INCLUDE_DIRS}")
-target_compile_options(python_cpp_example PUBLIC ${PYBIND11_CXX_FLAGS})
-target_link_libraries(python_cpp_example ${PYBIND11_LIBRARIES})
-target_linker_flags(python_cpp_example "${PYBIND11_LINKER_FLAGS}")
+target_compile_options(pycpp_build PUBLIC ${PYBIND11_CXX_FLAGS})
+target_link_libraries(pycpp_build ${PYBIND11_LIBRARIES})
+target_linker_flags(pycpp_build "${PYBIND11_LINKER_FLAGS}")
 
 # set standard
-set_target_properties(python_cpp_example PROPERTIES CXX_STANDARD 14
+set_target_properties(pycpp_build PROPERTIES CXX_STANDARD 14
   CXX_STANDARD_REQUIRED ON)
 
 
