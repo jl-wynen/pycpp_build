@@ -6,9 +6,11 @@ import platform
 import subprocess
 from pathlib import Path
 import pickle
+import inspect
 
 from shutil import copyfile, copymode
 from distutils.version import LooseVersion
+import distutils.cmd
 from distutils.cmd import Command
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
@@ -24,59 +26,123 @@ class CMakeExtension(Extension):
         Extension.__init__(self, name, sources=[])
         self.sourcedir = os.path.abspath(sourcedir)
 
-def parse_shell_command(cmd):
-    if not cmd:
-        return None
-
+def is_executable(cmd):
+    "Check if cmd is an executable command."
     status, output = subprocess.getstatusoutput(f"which {cmd}")
     if status == 0:
-        return cmd
-    print(f"Error: cannot execute command {cmd}:")
+        return True
+    print(f"error: Cannot execute command {cmd}:")
     print(f"  {output}")
-    sys.exit(1)
+    return False
 
-def parse_file(fname):
-    if not fname:
-        return None
+def file_exists(fname):
+    "Check if a file (or directory) exists."
+    exists = Path(fname).exists()
+    if not exists:
+        print(f"error: File does not exist: {fname}")
+    return exists
 
-    path = Path(fname)
-    if path.exists():
-        return path.resolve()
-    print(f"Error: path '{path}' does not exist")
-    sys.exit(1)
+BUILD_TYPES = ("DEVEL", "RELEASE", "DEBUG")
+DEFAULT_OPT_ARGS = dict(short_name=None, help="", bool=False, default=None, check=None)
+DEFAULT_OPTIONS = dict(compiler={**DEFAULT_OPT_ARGS,
+                                 "help": "C++ compiler",
+                                 "cmake": "CMAKE_CXX_COMPILER",
+                                 "long_name": "compiler=",
+                                 "check": is_executable},
+                       build_type={**DEFAULT_OPT_ARGS,
+                                   "help": f"CMake build type, allowed values are {BUILD_TYPES}",
+                                   "cmake": "CMAKE_BUILD_TYPE",
+                                   "long_name": "build_type=",
+                                   "default": "DEVEL",
+                                   "check": lambda x: x in BUILD_TYPES})
+FORBIDDEN_OPTIONS = ("description", "user_options")
 
 
-class ConfigureCommand(Command):
-    description = "configure build of C++ extension"
-    user_options = [
-        ("compiler=", None, "C++ compiler to use"),
-        ("catch=", None, "path to catch"),
-        ("build-type=", None, "CMake build type"),
-    ]
+def _parse_option(name, args):
+    "Parse a single user option."
+    # make sure everything is ok
+    if name in FORBIDDEN_OPTIONS:
+        print("error: Illegal option name for configure command: '{name}'")
+        sys.exit(1)
+    if name in DEFAULT_OPTIONS:
+        print("warning: Option to configure command will be overwritten by default: '{compiler}'")
+    if "cmake" not in args:
+        print("error: No key 'cmake' in arguments for configure option '{name}'")
+        sys.exit(1)
 
-    def initialize_options(self):
-        """Set default values"""
-        self.compiler = ""  # use default compiler
-        self.catch = ""  # search in system path
-        self.build_type = "devel"
+    # incorporate default arguments
+    args = {**DEFAULT_OPT_ARGS, **args}
+    if "long_name" not in args:  # add long_name if not given
+        args["long_name"] = name + ("=" if not args["bool"] else "")
+    return args
 
-    def finalize_options(self):
-        """Post-process options"""
+def _get_options(cls):
+    "Extract user options from a class."
+    underscore_re = re.compile("^_.*_$")
+    options = {name: _parse_option(name, args)
+               for name, args in inspect.getmembers(cls, lambda x: not inspect.isroutine(x))
+               if not underscore_re.match(name)}
+    return {**options, **DEFAULT_OPTIONS}
 
-        self.compiler = parse_shell_command(self.compiler)
-        self.catch = parse_file(self.catch)
-        self.build_type = self.build_type.upper()
-        if self.build_type not in ("DEVEL", "DEBUG", "RELEASE"):
-            print(f"Error: build type not supported: {self.build_type}")
-            sys.exit(1)
+def _format_option(name, val):
+    "Format name, value pair of user options."
+    if val is None:
+        val = "<unspecified>"
+    return "{} = {}".format(name.split("=", 1)[0], val)
 
-    def run(self):
-        BUILD_DIR.mkdir(exist_ok=True)
-        pickle.dump({"CMAKE_CXX_COMPILER": self.compiler,
-                     "CMAKE_BUILD_TYPE": self.build_type,
-                     "CATCH_INCLUDE": self.catch,
-                    },
-                    open(str(CONFIG_FILE), "wb"))
+def configure_command(outfile):
+    """
+    Decorator for a distutils configure command class.
+    Arguments:
+       - outfile: Path to the output file.
+    """
+
+    def _wrap(cls):
+        class _Configure(distutils.cmd.Command):
+            description = "configure build of C++ extensions"
+            # store full metadata on options
+            options = _get_options(cls)
+            # handled by distutils
+            user_options = [(args["long_name"].replace("_", "-"), args["short_name"],
+                             args["help"])
+                            for _, args in options.items()]
+
+            def initialize_options(self):
+                "Set defaults for all user options."
+                for name, args in self.options.items():
+                    setattr(self, name, args["default"])
+
+            def finalize_options(self):
+                "Post process and verify user options."
+                for name, args in self.options.items():
+                    if args["bool"]:
+                        setattr(self, name, str(bool(getattr(self, name))).upper())
+
+                    check = args["check"]
+                    val = getattr(self, name)
+                    if check is not None and val is not None and not check(val):
+                        print(f"Invalid argument to option {name}: '{getattr(self, name)}'")
+                        sys.exit(1)
+
+            def run(self):
+                "Execute the command, writes configure file."
+                print("-- " +
+                      "\n-- ".join(_format_option(args["long_name"], getattr(self, name))
+                                   for name, args in self.options.items()))
+                print(f"writing configuration to file {outfile}")
+                self.mkpath(str(Path(outfile).parent))
+                pickle.dump({args["cmake"]: getattr(self, name)
+                             for name, args in self.options.items()},
+                            open(str(outfile), "wb"))
+
+        return _Configure
+    return _wrap
+
+@configure_command(CONFIG_FILE)
+class Configure:
+    catch = dict(help="path to catch", cmake="CATCH_INCLUDE",
+                 check=file_exists)
+    foo = dict(bool=True, cmake="FOO")
 
 
 def common_cmake_args(config):
@@ -89,7 +155,7 @@ def common_cmake_args(config):
 class BuildExtension(build_ext):
     def run(self):
         # make sure that cmake is installed
-        _ = parse_shell_command("cmake")
+        is_executable("cmake")
 
         # read configuration file and prepare arguments for cmake
         try:
@@ -150,7 +216,7 @@ class BuildExtension(build_ext):
         except subprocess.CalledProcessError as err:
             print(f"Calling cmake to build failed, arguments {err.cmd}")
             sys.exit(1)
-        
+
 class CatchTestCommand(TestCommand):
     "Execute Python and C++ Catch tests"
 
@@ -187,7 +253,7 @@ setup(
     # "pycpp_build"
     ext_modules=[CMakeExtension("pycpp_build/pycpp_build")],
     cmdclass={
-        "configure": ConfigureCommand,
+        "configure": Configure,
         "build_ext": BuildExtension,
     },
     zip_safe=False,
