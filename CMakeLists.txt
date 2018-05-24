@@ -50,8 +50,8 @@ set_target_properties(${LIBRARY_NAME} PROPERTIES CXX_STANDARD 14
 #### unit tests
 
 set(TESTS ${SOURCES}
-  "${TEST_DIR}/test_main.cpp"
-  "${TEST_DIR}/test_math.cpp")
+  "${TEST_DIR}/cpp/test_main.cpp"
+  "${TEST_DIR}/cpp/test_math.cpp")
 
 
 set(CATCH_INCLUDE "" CACHE STRING "Path to catch")
