@@ -1,9 +1,8 @@
 """
-TODO
+Configure CMake based extensions.
 """
 
 import sys
-import subprocess
 from pathlib import Path
 import re
 import pickle
