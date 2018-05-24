@@ -220,26 +220,6 @@ class BuildExtension(build_ext):
             print(f"Calling cmake to build failed, arguments {err.cmd}")
             sys.exit(1)
 
-class CatchTestCommand(TestCommand):
-    "Execute Python and C++ Catch tests"
-
-    def distutils_dir_name(self, dname):
-        """Returns the name of a distutils build directory"""
-        dir_name = "{dirname}.{platform}-{version[0]}.{version[1]}"
-        return dir_name.format(dirname=dname,
-                               platform=sysconfig.get_platform(),
-                               version=sys.version_info)
-
-    def run(self):
-        # Run catch tests
-        subprocess.call(["./*_test"],
-                        cwd=os.path.join("build",
-                                         self.distutils_dir_name("temp")),
-                        shell=True)
-        # Run Python tests
-        super(CatchTestCommand, self).run()
-        print("\nPython tests complete, now running C++ tests...\n")
-
 setup(
     name="pycpp_build",
     version="0.1",
