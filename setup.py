@@ -2,16 +2,14 @@ import os
 import re
 import sys
 import sysconfig
-import platform
 import subprocess
 from pathlib import Path
 import pickle
 import inspect
+import shutil
 
-from shutil import copyfile, copymode
 from distutils.version import LooseVersion
 import distutils.cmd
-from distutils.cmd import Command
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 from setuptools.command.test import test as TestCommand
@@ -74,6 +72,9 @@ def _parse_option(name, args):
     args = {**DEFAULT_OPT_ARGS, **args}
     if "long_name" not in args:  # add long_name if not given
         args["long_name"] = name + ("=" if not args["bool"] else "")
+    # default for bools must be False, otherwise False could not be specified
+    if args["bool"]:
+        args["default"] = False
     return args
 
 def _get_options(cls):
@@ -145,8 +146,9 @@ class Configure:
     foo = dict(bool=True, cmake="FOO")
 
 
-def common_cmake_args(config):
-    return [f"-D{key}={val}" for key, val in config.items() if val] \
+def _common_cmake_args(config):
+    "Format arguments for CMake common to all extensions."
+    return [f"-D{key}={val}" for key, val in config.items() if val is not None] \
         + [f"-DPYTHON_EXECUTABLE={sys.executable}",
            f"-DPYTHON_CONFIG={sys.executable}-config",
            f"-DTEST_DIR={TEST_DIR}"]
@@ -161,10 +163,11 @@ class BuildExtension(build_ext):
         try:
             config = pickle.load(open(str(CONFIG_FILE), "rb"))
         except FileNotFoundError:
-            print("error: Configuration file not found. Did you forget to run the configure command first?")
+            print("error: Configuration file not found. Did you forget "
+                  "to run the configure command first?")
             sys.exit(2)
         config_time = CONFIG_FILE.stat().st_mtime
-        cmake_args = common_cmake_args(config)
+        cmake_args = _common_cmake_args(config)
 
         # build all extensions
         for ext in self.extensions:
@@ -181,7 +184,7 @@ class BuildExtension(build_ext):
                         f"-DCMAKE_LIBRARY_OUTPUT_DIRECTORY={extdir}"]
 
         try:
-            # call cmake
+            # call cmake from ext_build_dir
             subprocess.check_call(["cmake", extension.sourcedir] + cmake_args,
                                   cwd=ext_build_dir)
         except subprocess.CalledProcessError as err:
@@ -198,7 +201,7 @@ class BuildExtension(build_ext):
 
         # configure was run after making the directory => start over
         if ext_build_dir.exists() and ext_build_dir.stat().st_mtime < config_time:
-            ext_build_dir.rmdir()
+            shutil.rmtree(str(ext_build_dir))
 
         # need to run CMake
         if not ext_build_dir.exists():
