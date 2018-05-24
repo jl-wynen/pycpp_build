@@ -17,7 +17,8 @@ def version_from_git(plain=True):
     """
 
     try:
-        latest_tag = subprocess.check_output(["git", "describe", "--tag"]).decode("utf-8")
+        latest_tag = subprocess.check_output(["git", "describe", "--tag"],
+                                             stderr=subprocess.STDOUT).decode("utf-8")
         match = re.match(r"v?((\d[\d\.]*).*)\n?", str(latest_tag))
         if match is None:
             print(f"error: latest tag does not conform to format of version number: {latest_tag}")
