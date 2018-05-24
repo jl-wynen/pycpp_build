@@ -76,7 +76,7 @@ def get_cmake_builder(config_file, test_dir=None):
             print(f"building extension {extension.name}")
 
             # name of the output library
-            libname = extension.name.rsplit("/", 1)[1]
+            libname = extension.name.rsplit("/", 1)[-1]
             # directory to build the extension in
             ext_build_dir = Path(self.build_temp).resolve()/libname
 
