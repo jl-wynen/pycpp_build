@@ -26,7 +26,7 @@ endif ()
 
 project(${LIBRARY_NAME})
 
-set(SOURCE_DIR "src/${LIBRARY_NAME}")
+set(SOURCE_DIR "src/${LIBRARY_NAME}/cpp")
 include_directories(${SOURCE_DIR})
 set(SOURCES "${SOURCE_DIR}/math.cpp")
 

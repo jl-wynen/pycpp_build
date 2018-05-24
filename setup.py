@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from setuptools import setup, find_packages
 
 from setup import CMakeExtension, configure_command, predicate, \
@@ -26,7 +25,7 @@ setup(
     packages=find_packages("src"),
     # tell setuptools that all packages will be under the "src" directory
     # and nowhere else
-    package_dir={"":"src"},
+    package_dir={"": "src"},
     # add an extension module named "pycpp_build" to the package
     # "pycpp_build"
     ext_modules=[CMakeExtension("pycpp_build/pycpp_build")],
@@ -37,7 +36,6 @@ setup(
     zip_safe=False,
     python_requires=">=3.6.5",
     entry_points={
-        "console_scripts": ["hei = pycpp_build.main:main"]
+        "console_scripts": ["hei = pycpp_build.scripts.main:main"]
     },
-    install_requires=["numpy>=1.14.3"],
 )

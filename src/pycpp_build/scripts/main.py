@@ -1,4 +1,4 @@
-from . import add, say_hei
+from .. import add, say_hei
 
 def main():
     say_hei()

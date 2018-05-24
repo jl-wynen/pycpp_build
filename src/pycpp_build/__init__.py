@@ -1,2 +1,5 @@
 from .pycpp_build import *
-from .hello import *
+from .py import *
+
+del py
+del pycpp_build
