@@ -2,7 +2,7 @@ from pathlib import Path
 from setuptools import setup, find_packages
 
 from setup import CMakeExtension, configure_command, predicate, \
-    get_cmake_builder, version_from_git
+    get_cmake_builder, version_from_git, doxygen_command
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 BUILD_DIR = PROJECT_ROOT/"build"
@@ -32,6 +32,7 @@ setup(
     cmdclass={
         "configure": Configure,
         "build_ext": get_cmake_builder(CONFIG_FILE, TEST_DIR),
+        "doc": doxygen_command("docs/doxyfile.conf")
     },
     zip_safe=False,
     python_requires=">=3.6.5",

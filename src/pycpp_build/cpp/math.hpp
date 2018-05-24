@@ -1,15 +1,21 @@
 #ifndef MATH_HPP
 #define MATH_HPP
 
-/*! Add two integers
-    \param i an integer
-    \param j another integer
-*/
-int add(int i, int j);
-/*! Subtract one integer from another
-    \param i an integer
-    \param j an integer to subtract from \p i
-*/
-int subtract(int i, int j);
+/**
+ * \file
+ * \brief Super complicated mathematics.
+ */
 
+/// Add two ints.
+/**
+ * \param i Summand 1.
+ * \param j Summand 2.
+ * \returns `i + j`
+ */
+int add(int i, int j);
+/// Subtract two ints.
+/**
+ * ...
+ */
+int subtract(int i, int j);
 #endif
