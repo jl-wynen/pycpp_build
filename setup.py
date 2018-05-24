@@ -8,7 +8,6 @@ import pickle
 import inspect
 import shutil
 
-from distutils.version import LooseVersion
 import distutils.cmd
 from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
