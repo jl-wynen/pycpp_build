@@ -1,15 +1,45 @@
-pilfered from
-http://www.benjack.io/2017/06/12/python-cpp-tests.html
+# Build Python packages with C++ extensions
 
-use
-pip install --user -e .
-to install in development mode
-or
-python setup.py develop --user
+This is an example project showing how a Python package using a C++ extension can be
+built using `setuptools` + `CMake`.
+Includes code to compile, install, build and run unit tests, and build documentation.
+It is based on the blog post http://www.benjack.io/2017/06/12/python-cpp-tests.html
 
-can use pip uninstall for both cases
-or use
-python setup.py develop --user --uninstall
-Note: the script hei seems to remain after uninstalling!
+## Usage
+- *Download* [Catch2](https://github.com/catchorg/Catch2) into `./lib`
+- *Configure extension*
+  ```
+  python setup.py configure --catch=lib/Catch2/single_include
+  ```
+- *Build extension*
+  * For deployment
+  ```
+  pip install . --user    # or python setup.py install --user
+  ```
+  * For development
+  ```
+  pip install -e . --user    # or python setup.py develop --user
+  ```
+  Afterwards, Python files can be modified without rebuilding, C++ files can be rebuilt
+  using `python setup.py build`.
+- *Uninstall*
+  Simply use `pip uninstall pycpp_build`.
+  Note that this tends to leave the script `hei` behind.
+- *Test*
+  ```
+  python setup.py test
+  ```
+- *Build documentation*
+  ```
+  python setup.py doc
+  ```
+  
+## For other packages
+This is not a Python package meant to be included in other projects.
+To use it, simple copy the `setup` folder into your project and write `CMakeLists.txt` files
+analogously to the ones in this project and write a proper `setup.py`.
 
-No windows support!
+## Limitations
+- No Windows support.
+- Designed for and tested with only a single extension library.
+  No guarantees that it works with more than one.
