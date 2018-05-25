@@ -94,8 +94,6 @@ def get_cmake_builder(config_file, test_dir=None):
             extra_args = []
             if self.parallel:
                 extra_args += ["-j", str(self.parallel)]
-            if self.verbose:
-                extra_args += ["VERBOSE=1"]
             # construct CMake command
             build_cmd = ["cmake", "--build", "."]
             if extra_args:
