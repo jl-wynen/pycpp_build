@@ -90,9 +90,16 @@ def get_cmake_builder(config_file, test_dir=None):
                 self._run_cmake(extension, libname, ext_build_dir, cmake_args)
 
             print("compiling extension")
-            build_cmd = ["cmake", "--build", "."]
+            # arguments for build tool
+            extra_args = []
             if self.parallel:
-                build_cmd += ["--", "-j", str(self.parallel)]
+                extra_args += ["-j", str(self.parallel)]
+            if self.verbose:
+                extra_args += ["VERBOSE=1"]
+            # construct CMake command
+            build_cmd = ["cmake", "--build", "."]
+            if extra_args:
+                build_cmd += ["--", *extra_args]
             try:
                 subprocess.check_call(build_cmd, cwd=ext_build_dir)
                 if test_dir is not None:
