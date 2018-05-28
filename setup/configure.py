@@ -35,12 +35,12 @@ def _parse_option(name, args):
     "Parse a single user option."
     # make sure everything is ok
     if name in _FORBIDDEN_OPTIONS:
-        print("error: Illegal option name for configure command: '{name}'")
+        print(f"error: Illegal option name for configure command: '{name}'")
         sys.exit(1)
     if name in _DEFAULT_OPTIONS:
-        print("warning: Option to configure command will be overwritten by default: '{compiler}'")
+        print(f"warning: Option to configure command will be overwritten by default: '{name}'")
     if "cmake" not in args:
-        print("error: No key 'cmake' in arguments for configure option '{name}'")
+        print(f"error: No key 'cmake' in arguments for configure option '{name}'")
         sys.exit(1)
 
     # incorporate default arguments
