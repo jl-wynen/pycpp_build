@@ -39,6 +39,8 @@ This is not a Python package meant to be included in other projects.
 To use it, simple copy the `setup` folder into your project and write `CMakeLists.txt` files
 analogously to the ones in this project and write a proper `setup.py`.
 
+See [isle](https://github.com/jl-wynen/isle) for a real life example. Note that isle uses a slightly adapted version of the code in this repo.
+
 ## Limitations
 - No Windows support.
 - Designed for and tested with only a single extension library.
